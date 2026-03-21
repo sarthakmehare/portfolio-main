@@ -176,6 +176,23 @@ Role‑Based Birth Certificate System — Secure web app where users submit birt
                 </a>
             </div>
         </section>
+        <div class="divider"></div>
+
+        <!-- GitHub Activity Section -->
+        <section class="updates-section" id="updates">
+
+            <h2 class="main-title">
+                Recent<br/>
+                <span class="title-accent">Activity</span>
+            </h2>
+
+            <div class="updates-container">
+                <div id="updates-list">
+                    <p>Loading updates...</p>
+                </div>
+            </div>
+        </section>
+       
         
         <!-- Footer -->
         <footer class="footer">
@@ -207,5 +224,58 @@ Role‑Based Birth Certificate System — Secure web app where users submit birt
     </main>
     
     <script src="/src/script.js"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const container = document.getElementById("updates-list");
+    const API_URL = "https://api.github.com/users/sarthakmehare/events";
+    const MAX_ITEMS = 5;
+
+    async function loadUpdates() {
+        try {
+            const res = await fetch(API_URL);
+            const events = await res.json();
+
+            let html = "";
+            let count = 0;
+
+            for (const e of events) {
+                if (count >= MAX_ITEMS) break;
+
+                let text = "";
+                const date = new Date(e.created_at).toDateString();
+
+                if (e.type === "PushEvent") {
+                    text = `Pushed to ${e.repo.name}`;
+                } else if (e.type === "PullRequestEvent") {
+                    text = `Opened PR in ${e.repo.name}`;
+                } else if (e.type === "IssuesEvent") {
+                    text = `Worked on issue in ${e.repo.name}`;
+                } else if (e.type === "CreateEvent") {
+                    text = `Created ${e.payload.ref_type}`;
+                } else {
+                    continue;
+                }
+
+                html += `
+                    <div class="update-item">
+                        <span>${text}</span>
+                        <small>${date}</small>
+                    </div>
+                `;
+
+                count++;
+            }
+
+            container.innerHTML = html || "No activity found";
+
+        } catch {
+            container.innerHTML = "Failed to load";
+        }
+    }
+
+    loadUpdates();
+});
+</script>
 </body>
 </html>
