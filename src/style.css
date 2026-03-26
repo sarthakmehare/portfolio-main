@@ -37,8 +37,9 @@ body {
 .container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0;
+    padding: 2rem 1.25rem;
     background-color: #000000;
+    overflow-x: hidden;
 }
 
 @media (min-width: 768px) {
@@ -115,7 +116,7 @@ body {
 
 .vertical-name {
     font-family: var(--font-japanese);
-    font-size: 3.75rem;
+    font-size: 3rem;
     line-height: 1;
     color: var(--color-gray-300);
     user-select: none;
@@ -189,7 +190,7 @@ body {
 /* ==================== ABOUT SECTION ==================== */
 .about-section {
     margin-bottom: 8rem;
-    padding-left: 0;
+    padding-left: 2rem;
     position: relative;
 }
 
@@ -548,13 +549,15 @@ body {
 
 .footer-copyright-container {
     display: flex;
-    justify-content: flex-end;
-    align-items: flex-end;
+    justify-content: flex-start;
+    align-items: flex-start;
 }
 
 @media (min-width: 768px) {
     .footer-copyright-container {
         grid-column: span 3;
+        justify-content: flex-end;
+        align-items: flex-end;
     }
 }
 
