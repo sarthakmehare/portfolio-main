@@ -121,8 +121,9 @@ body {
     user-select: none;
     opacity: 0.8;
     margin-bottom: 2rem;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
+    /* Explicitly horizontal on mobile */
+    writing-mode: horizontal-tb;
+    text-align: center;
 }
 
 @media (min-width: 768px) {
@@ -133,6 +134,10 @@ body {
         right: 3rem;
         top: 0;
         height: 100%;
+        /* Change to vertical on larger screens */
+        -webkit-writing-mode: vertical-rl;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
     }
 }
 
