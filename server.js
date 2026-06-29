@@ -23,6 +23,12 @@ app.use(express.json());
 // Serve static files (index.html, src/, etc.)
 app.use(express.static(path.join(__dirname)));
 
+// ─── GitHub activity proxy endpoint ───
+app.get('/api/github', async (req, res) => {
+    const githubHandler = require('./api/github');
+    await githubHandler(req, res);
+});
+
 // ─── Contact form endpoint ───
 app.post('/api/contact', async (req, res) => {
     const { name, email, subject, message } = req.body;

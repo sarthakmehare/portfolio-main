@@ -1,5 +1,6 @@
 {
     "rewrites": [
-        { "source": "/api/contact", "destination": "/api/contact" }
+        { "source": "/api/contact", "destination": "/api/contact" },
+        { "source": "/api/github", "destination": "/api/github" }
     ]
 }

@@ -1118,29 +1118,194 @@ body.light-mode .skill-card:hover {
 
 .updates-container {
     margin-top: 40px;
-    max-width: 600px;
+    max-width: 640px;
+}
+
+#updates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .update-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 14px;
     border-bottom: 1px solid var(--color-border);
-    padding: 12px 0;
+    padding: 14px 12px;
     font-size: 14px;
     color: var(--color-text);
     transition: all 0.3s ease;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 4px;
+    opacity: 0;
+    animation: none;
+}
+
+.update-item.update-fade-in {
+    animation: updateFadeIn 0.4s ease forwards;
+}
+
+.update-item.skeleton-item {
+    opacity: 1;
+    cursor: default;
+    pointer-events: none;
+}
+
+@keyframes updateFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .update-item:hover {
-    padding-left: 8px;
+    background: rgba(200, 184, 255, 0.04);
     border-bottom-color: var(--color-accent);
+    padding-left: 16px;
 }
 
-.update-item small {
-    color: var(--color-text-secondary);
+body.light-mode .update-item:hover {
+    background: rgba(108, 92, 231, 0.04);
+}
+
+.update-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-accent);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.update-item:hover .update-icon {
+    background: var(--color-accent);
+    color: #000;
+    border-color: var(--color-accent);
+}
+
+.update-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.update-label {
+    font-size: 0.875rem;
+    color: var(--color-text);
     white-space: nowrap;
-    margin-left: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.update-time {
+    font-family: monospace;
+    font-size: 0.7rem;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.03em;
+}
+
+.update-link-icon {
+    font-size: 0.65rem;
+    color: var(--color-text-secondary);
+    opacity: 0;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.update-item:hover .update-link-icon {
+    opacity: 1;
+    color: var(--color-accent);
+    transform: translateX(2px);
+}
+
+/* Skeleton loading */
+.skeleton-pulse {
+    background: linear-gradient(90deg,
+            var(--color-border) 25%,
+            rgba(200, 184, 255, 0.08) 50%,
+            var(--color-border) 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+
+body.light-mode .skeleton-pulse {
+    background: linear-gradient(90deg,
+            #e5e5e5 25%,
+            #f0f0f0 50%,
+            #e5e5e5 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonShimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Error & empty states */
+.update-error,
+.update-empty {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 16px;
+    border: 1px dashed var(--color-border);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+}
+
+.update-error i,
+.update-empty i {
+    font-size: 1.1rem;
+    color: var(--color-accent);
+    flex-shrink: 0;
+}
+
+.update-retry-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    padding: 6px 14px;
+    font-family: monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.update-retry-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: rgba(200, 184, 255, 0.06);
+}
+
+body.light-mode .update-retry-btn:hover {
+    background: rgba(108, 92, 231, 0.06);
 }
 
 /* ==================== CONTACT SECTION ==================== */
