@@ -210,6 +210,19 @@
 
         <div class="divider"></div>
 
+        <!-- ============ CERTIFICATES SECTION ============ -->
+        <section class="certificates-section" id="certificates">
+            <h2 class="main-title">
+                My<br />
+                <span class="title-accent">Certificates</span>
+            </h2>
+            <div class="certificates-grid" id="certificates-grid">
+                <!-- Rendered dynamically by JS -->
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
         <!-- ============ CONTACT / MAIL SECTION ============ -->
         <section class="contact-section" id="contact">
             <div class="contact-grid">
@@ -529,6 +542,163 @@
 
             window.loadGitHubActivity = loadUpdates;
             loadUpdates();
+        });
+    </script>
+
+    <!-- ============ CERTIFICATES SCRIPT ============ -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+
+            /* ====================================================================
+             *  CERTIFICATE DATA — Edit this array to add / remove certificates.
+             *
+             *  Fields:
+             *    title         – Certificate name (required)
+             *    org           – Issuing organization (required)
+             *    date          – Issue date, e.g. "Oct 2023" (required)
+             *    preview       – Path to a preview image shown on the card (required)
+             *    file          – Path to the full certificate file — image OR PDF (required)
+             *                    The modal auto-detects the type: .pdf → embedded PDF viewer,
+             *                    anything else → displayed as an image.
+             *    credentialUrl – (optional) External verification / credential URL.
+             *                    When provided a small "Verify" link appears on the card.
+             *
+             *  To add a new certificate just copy one block and fill in the values.
+             * ==================================================================== */
+            const certificatesData = [
+
+                {
+                    title: "TECH-AXION 2.0 2K26  National Level Technical Event",
+                    org: "TGPCET",
+                    date: "Mar 2026",
+                    preview: "./src/certificates/sarthak_mehare.jpg",
+                    file: "./src/certificates/sarthak_mehare.jpg",
+                    credentialUrl: ""
+                },
+
+
+            ];
+
+            /* ---- helpers ---- */
+            function isPDF(path) {
+                return typeof path === "string" && path.toLowerCase().endsWith(".pdf");
+            }
+
+            /* ---------- Render cards ---------- */
+            const grid = document.getElementById("certificates-grid");
+            if (!grid) return;
+
+            certificatesData.forEach((cert, i) => {
+                const credentialLink = cert.credentialUrl
+                    ? `<a href="${cert.credentialUrl}" target="_blank" rel="noopener" class="cert-credential-link" title="Verify credential">
+                       <i class="fa-solid fa-circle-check"></i> Verify
+                   </a>`
+                    : "";
+
+                const card = document.createElement("div");
+                card.className = "cert-card";
+                card.style.animationDelay = `${i * 0.1}s`;
+                card.innerHTML = `
+                <div class="cert-image-wrap" data-index="${i}">
+                    <img src="${cert.preview}" alt="${cert.title}" class="cert-image" loading="lazy" />
+                    <div class="cert-image-overlay">
+                        <i class="fa-solid fa-expand"></i>
+                    </div>
+                </div>
+                <div class="cert-body">
+                    <h3 class="cert-name">${cert.title}</h3>
+                    <p class="cert-org">${cert.org}</p>
+                    <span class="cert-date"><i class="fa-regular fa-calendar"></i> ${cert.date}</span>
+                    <div class="cert-actions">
+                        <button type="button" class="cert-btn" data-index="${i}">
+                            <span>View Certificate</span>
+                            <i class="fa-solid fa-expand"></i>
+                        </button>
+                        ${credentialLink}
+                    </div>
+                </div>
+            `;
+                grid.appendChild(card);
+            });
+
+            /* ---------- Modal ---------- */
+            const modal = document.createElement("div");
+            modal.className = "cert-modal";
+            modal.id = "cert-modal";
+            modal.innerHTML = `
+            <div class="cert-modal-backdrop"></div>
+            <div class="cert-modal-content">
+                <button class="cert-modal-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                <div class="cert-modal-viewer" id="cert-modal-viewer"></div>
+            </div>
+        `;
+            document.body.appendChild(modal);
+
+            const viewer = document.getElementById("cert-modal-viewer");
+            const backdrop = modal.querySelector(".cert-modal-backdrop");
+            const closeBtn = modal.querySelector(".cert-modal-close");
+
+            function openModal(index) {
+                const cert = certificatesData[index];
+                if (!cert) return;
+
+                /* clear previous content */
+                viewer.innerHTML = "";
+
+                if (isPDF(cert.file)) {
+                    /* PDF — use embedded iframe */
+                    const iframe = document.createElement("iframe");
+                    iframe.className = "cert-modal-pdf";
+                    iframe.src = cert.file;
+                    iframe.title = cert.title;
+                    iframe.setAttribute("frameborder", "0");
+                    iframe.setAttribute("allowfullscreen", "true");
+                    viewer.appendChild(iframe);
+                    modal.classList.add("active", "pdf-mode");
+                } else {
+                    /* Image */
+                    const img = document.createElement("img");
+                    img.className = "cert-modal-img";
+                    img.src = cert.file;
+                    img.alt = cert.title;
+                    viewer.appendChild(img);
+                    modal.classList.add("active");
+                    modal.classList.remove("pdf-mode");
+                }
+
+                document.body.style.overflow = "hidden";
+            }
+
+            function closeModal() {
+                modal.classList.remove("active", "pdf-mode");
+                document.body.style.overflow = "";
+                /* defer cleanup so the fade-out animation plays */
+                setTimeout(() => { viewer.innerHTML = ""; }, 350);
+            }
+
+            /* Open from image click */
+            grid.addEventListener("click", (e) => {
+                const wrap = e.target.closest(".cert-image-wrap");
+                if (wrap) { openModal(Number(wrap.dataset.index)); return; }
+
+                const btn = e.target.closest(".cert-btn");
+                if (btn) { openModal(Number(btn.dataset.index)); return; }
+            });
+
+            backdrop.addEventListener("click", closeModal);
+            closeBtn.addEventListener("click", closeModal);
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" && modal.classList.contains("active")) closeModal();
+            });
+
+            /* ---------- Scroll-reveal for cert cards ---------- */
+            const certObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add("cert-visible");
+                });
+            }, { threshold: 0.1, rootMargin: "0px 0px -40px 0px" });
+
+            grid.querySelectorAll(".cert-card").forEach(c => certObserver.observe(c));
         });
     </script>
 </body>
