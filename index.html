@@ -11,7 +11,8 @@
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
 
-    <link rel="icon" type="image/png" href="/src/favicon.png" />
+
+
     <link rel="stylesheet" href="/src/style.css" />
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
 
@@ -210,6 +211,19 @@
 
         <div class="divider"></div>
 
+        <!-- ============ CERTIFICATES SECTION ============ -->
+        <section class="certificates-section" id="certificates">
+            <h2 class="main-title">
+                My<br />
+                <span class="title-accent">Certificates</span>
+            </h2>
+            <div class="certificates-grid" id="certificates-grid">
+                <!-- Rendered dynamically by JS -->
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
         <!-- ============ CONTACT / MAIL SECTION ============ -->
         <section class="contact-section" id="contact">
             <div class="contact-grid">
@@ -305,55 +319,389 @@
         document.addEventListener("DOMContentLoaded", () => {
 
             const container = document.getElementById("updates-list");
-            const API_URL = "https://api.github.com/users/sarthakmehare/events";
-            const MAX_ITEMS = 5;
+            const GITHUB_USERNAME = "sarthakmehare";
+            const EVENTS_URL = `https://api.github.com/users/${GITHUB_USERNAME}/events?per_page=30`;
+            const REPOS_URL = `https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=updated&per_page=8`;
+            const CACHE_KEY = "github_activity_cache";
+            const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-            async function loadUpdates() {
-                try {
-                    const res = await fetch(API_URL);
-                    const events = await res.json();
+            // Static fallback — always available even with no API access
+            const STATIC_FALLBACK = [
+                { text: "Working on portfolio-main", icon: "push", url: `https://github.com/${GITHUB_USERNAME}/portfolio-main`, repo: `${GITHUB_USERNAME}/portfolio-main`, date: new Date().toISOString() },
+                { text: "Active on GitHub", icon: "create", url: `https://github.com/${GITHUB_USERNAME}`, repo: `${GITHUB_USERNAME}`, date: new Date().toISOString() },
+            ];
 
-                    let html = "";
-                    let count = 0;
+            function getRelativeTime(dateStr) {
+                const now = new Date();
+                const date = new Date(dateStr);
+                const diffMs = now - date;
+                const diffMin = Math.floor(diffMs / 60000);
+                const diffHr = Math.floor(diffMin / 60);
+                const diffDay = Math.floor(diffHr / 24);
+                const diffWeek = Math.floor(diffDay / 7);
 
-                    for (const e of events) {
-                        if (count >= MAX_ITEMS) break;
-
-                        let text = "";
-                        const date = new Date(e.created_at).toDateString();
-
-                        if (e.type === "PushEvent") {
-                            text = `Pushed to ${e.repo.name}`;
-                        } else if (e.type === "PullRequestEvent") {
-                            text = `Opened PR in ${e.repo.name}`;
-                        } else if (e.type === "IssuesEvent") {
-                            text = `Worked on issue in ${e.repo.name}`;
-                        } else if (e.type === "CreateEvent") {
-                            text = `Created ${e.payload.ref_type}`;
-                        } else {
-                            continue;
-                        }
-
-                        html += `
-                    <div class="update-item">
-                        <span>${text}</span>
-                        <small>${date}</small>
-                    </div>
-                `;
-
-                        count++;
-                    }
-
-                    container.innerHTML = html || "No activity found";
-
-                } catch {
-                    container.innerHTML = "Failed to load";
-                }
+                if (diffMin < 1) return 'just now';
+                if (diffMin < 60) return `${diffMin}m ago`;
+                if (diffHr < 24) return `${diffHr}h ago`;
+                if (diffDay < 7) return `${diffDay}d ago`;
+                if (diffWeek < 4) return `${diffWeek}w ago`;
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             }
 
+            function getEventIcon(icon) {
+                const icons = {
+                    push: '<i class="fa-solid fa-code-commit"></i>',
+                    pr: '<i class="fa-solid fa-code-pull-request"></i>',
+                    issue: '<i class="fa-solid fa-circle-dot"></i>',
+                    create: '<i class="fa-solid fa-plus"></i>',
+                    star: '<i class="fa-solid fa-star"></i>',
+                    fork: '<i class="fa-solid fa-code-fork"></i>',
+                    delete: '<i class="fa-solid fa-trash"></i>',
+                    repo: '<i class="fa-solid fa-book"></i>',
+                };
+                return icons[icon] || '<i class="fa-solid fa-code"></i>';
+            }
+
+            function showSkeleton() {
+                let html = '';
+                for (let i = 0; i < 5; i++) {
+                    html += `
+                        <div class="update-item skeleton-item">
+                            <div class="update-icon skeleton-pulse" style="width:28px;height:28px;border-radius:6px;"></div>
+                            <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                                <div class="skeleton-pulse" style="height:14px;width:${70 + Math.random() * 25}%;border-radius:4px;"></div>
+                                <div class="skeleton-pulse" style="height:10px;width:60px;border-radius:4px;"></div>
+                            </div>
+                        </div>`;
+                }
+                container.innerHTML = html;
+            }
+
+            function renderEvents(events) {
+                if (!events || events.length === 0) {
+                    events = STATIC_FALLBACK;
+                }
+
+                let html = "";
+                for (const e of events) {
+                    const relTime = getRelativeTime(e.date);
+                    const icon = getEventIcon(e.icon);
+                    html += `
+                        <a href="${e.url}" target="_blank" rel="noopener" class="update-item" title="${e.repo}">
+                            <div class="update-icon">${icon}</div>
+                            <div class="update-text">
+                                <span class="update-label">${e.text}</span>
+                                <small class="update-time">${relTime}</small>
+                            </div>
+                            <i class="fa-solid fa-arrow-up-right-from-square update-link-icon"></i>
+                        </a>`;
+                }
+                container.innerHTML = html;
+
+                // Stagger fade-in
+                container.querySelectorAll('.update-item').forEach((item, i) => {
+                    item.style.animationDelay = `${i * 0.06}s`;
+                    item.classList.add('update-fade-in');
+                });
+            }
+
+            function getCachedData() {
+                try {
+                    const raw = localStorage.getItem(CACHE_KEY);
+                    if (!raw) return null;
+                    const cached = JSON.parse(raw);
+                    if (Date.now() - cached.timestamp < CACHE_TTL) {
+                        return cached.events;
+                    }
+                    return cached.events; // return stale data too, as fallback
+                } catch { return null; }
+            }
+
+            function setCachedData(events) {
+                try {
+                    localStorage.setItem(CACHE_KEY, JSON.stringify({
+                        timestamp: Date.now(),
+                        events: events,
+                    }));
+                } catch { /* localStorage full or unavailable */ }
+            }
+
+            function parseGitHubEvents(rawEvents) {
+                const MAX_ITEMS = 8;
+                const filtered = [];
+
+                for (const e of rawEvents) {
+                    if (filtered.length >= MAX_ITEMS) break;
+                    let text = '', icon = '', url = '';
+
+                    if (e.type === 'PushEvent') {
+                        const commits = e.payload?.commits || [];
+                        text = `Pushed ${commits.length} commit${commits.length !== 1 ? 's' : ''} to ${e.repo.name.split('/')[1]}`;
+                        icon = 'push';
+                        url = `https://github.com/${e.repo.name}`;
+                    } else if (e.type === 'PullRequestEvent') {
+                        const action = e.payload?.action || 'opened';
+                        text = `${action.charAt(0).toUpperCase() + action.slice(1)} PR in ${e.repo.name.split('/')[1]}`;
+                        icon = 'pr';
+                        url = e.payload?.pull_request?.html_url || `https://github.com/${e.repo.name}/pulls`;
+                    } else if (e.type === 'IssuesEvent') {
+                        const action = e.payload?.action || 'opened';
+                        text = `${action.charAt(0).toUpperCase() + action.slice(1)} issue in ${e.repo.name.split('/')[1]}`;
+                        icon = 'issue';
+                        url = e.payload?.issue?.html_url || `https://github.com/${e.repo.name}/issues`;
+                    } else if (e.type === 'CreateEvent') {
+                        text = `Created ${e.payload?.ref_type || 'repo'}${e.payload?.ref ? ' "' + e.payload.ref + '"' : ''} in ${e.repo.name.split('/')[1]}`;
+                        icon = 'create';
+                        url = `https://github.com/${e.repo.name}`;
+                    } else if (e.type === 'WatchEvent') {
+                        text = `Starred ${e.repo.name.split('/')[1]}`;
+                        icon = 'star';
+                        url = `https://github.com/${e.repo.name}`;
+                    } else if (e.type === 'ForkEvent') {
+                        text = `Forked ${e.repo.name.split('/')[1]}`;
+                        icon = 'fork';
+                        url = `https://github.com/${e.repo.name}`;
+                    } else {
+                        continue;
+                    }
+
+                    filtered.push({
+                        text, icon, url,
+                        repo: e.repo.name,
+                        date: e.created_at,
+                    });
+                }
+
+                return filtered;
+            }
+
+            function parseReposAsFallback(repos) {
+                return repos.slice(0, 6).map(r => ({
+                    text: `Updated ${r.name}`,
+                    icon: 'repo',
+                    url: r.html_url,
+                    repo: r.full_name,
+                    date: r.updated_at || r.pushed_at,
+                }));
+            }
+
+            async function loadUpdates() {
+                showSkeleton();
+
+                // 1) Try Events API directly
+                try {
+                    const res = await fetch(EVENTS_URL, {
+                        headers: { 'Accept': 'application/vnd.github.v3+json' }
+                    });
+
+                    if (res.ok) {
+                        const rawEvents = await res.json();
+                        const events = parseGitHubEvents(rawEvents);
+                        if (events.length > 0) {
+                            setCachedData(events);
+                            renderEvents(events);
+                            return;
+                        }
+                    }
+
+                    // If rate-limited (403), check if we have cached data
+                    if (res.status === 403 || res.status === 429) {
+                        const cached = getCachedData();
+                        if (cached && cached.length > 0) {
+                            renderEvents(cached);
+                            return;
+                        }
+                        // Fall through to repos fallback
+                    }
+                } catch {
+                    // Network error — try cache first
+                    const cached = getCachedData();
+                    if (cached && cached.length > 0) {
+                        renderEvents(cached);
+                        return;
+                    }
+                }
+
+                // 2) Fallback: try Repos API (different rate limit bucket sometimes works)
+                try {
+                    const res = await fetch(REPOS_URL, {
+                        headers: { 'Accept': 'application/vnd.github.v3+json' }
+                    });
+                    if (res.ok) {
+                        const repos = await res.json();
+                        const events = parseReposAsFallback(repos);
+                        if (events.length > 0) {
+                            renderEvents(events);
+                            return;
+                        }
+                    }
+                } catch { /* ignore */ }
+
+                // 3) Last resort: static fallback data
+                renderEvents(STATIC_FALLBACK);
+            }
+
+            window.loadGitHubActivity = loadUpdates;
             loadUpdates();
+        });
+    </script>
+
+    <!-- ============ CERTIFICATES SCRIPT ============ -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+
+            /* ====================================================================
+             *  CERTIFICATE DATA — Edit this array to add / remove certificates.
+             *
+             *  Fields:
+             *    title         – Certificate name (required)
+             *    org           – Issuing organization (required)
+             *    date          – Issue date, e.g. "Oct 2023" (required)
+             *    preview       – Path to a preview image shown on the card (required)
+             *    file          – Path to the full certificate file — image OR PDF (required)
+             *                    The modal auto-detects the type: .pdf → embedded PDF viewer,
+             *                    anything else → displayed as an image.
+             *    credentialUrl – (optional) External verification / credential URL.
+             *                    When provided a small "Verify" link appears on the card.
+             *
+             *  To add a new certificate just copy one block and fill in the values.
+             * ==================================================================== */
+            const certificatesData = [
+
+                {
+                    title: "TECH-AXION 2.0 2K26  National Level Technical Event",
+                    org: "TGPCET",
+                    date: "Mar 2026",
+                    preview: "./src/certificates/sarthak_mehare.jpg",
+                    file: "./src/certificates/sarthak_mehare.jpg",
+                    credentialUrl: ""
+                },
+
+
+            ];
+
+            /* ---- helpers ---- */
+            function isPDF(path) {
+                return typeof path === "string" && path.toLowerCase().endsWith(".pdf");
+            }
+
+            /* ---------- Render cards ---------- */
+            const grid = document.getElementById("certificates-grid");
+            if (!grid) return;
+
+            certificatesData.forEach((cert, i) => {
+                const credentialLink = cert.credentialUrl
+                    ? `<a href="${cert.credentialUrl}" target="_blank" rel="noopener" class="cert-credential-link" title="Verify credential">
+                       <i class="fa-solid fa-circle-check"></i> Verify
+                   </a>`
+                    : "";
+
+                const card = document.createElement("div");
+                card.className = "cert-card";
+                card.style.animationDelay = `${i * 0.1}s`;
+                card.innerHTML = `
+                <div class="cert-image-wrap" data-index="${i}">
+                    <img src="${cert.preview}" alt="${cert.title}" class="cert-image" loading="lazy" />
+                    <div class="cert-image-overlay">
+                        <i class="fa-solid fa-expand"></i>
+                    </div>
+                </div>
+                <div class="cert-body">
+                    <h3 class="cert-name">${cert.title}</h3>
+                    <p class="cert-org">${cert.org}</p>
+                    <span class="cert-date"><i class="fa-regular fa-calendar"></i> ${cert.date}</span>
+                    <div class="cert-actions">
+                        <button type="button" class="cert-btn" data-index="${i}">
+                            <span>View Certificate</span>
+                            <i class="fa-solid fa-expand"></i>
+                        </button>
+                        ${credentialLink}
+                    </div>
+                </div>
+            `;
+                grid.appendChild(card);
+            });
+
+            /* ---------- Modal ---------- */
+            const modal = document.createElement("div");
+            modal.className = "cert-modal";
+            modal.id = "cert-modal";
+            modal.innerHTML = `
+            <div class="cert-modal-backdrop"></div>
+            <div class="cert-modal-content">
+                <button class="cert-modal-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                <div class="cert-modal-viewer" id="cert-modal-viewer"></div>
+            </div>
+        `;
+            document.body.appendChild(modal);
+
+            const viewer = document.getElementById("cert-modal-viewer");
+            const backdrop = modal.querySelector(".cert-modal-backdrop");
+            const closeBtn = modal.querySelector(".cert-modal-close");
+
+            function openModal(index) {
+                const cert = certificatesData[index];
+                if (!cert) return;
+
+                /* clear previous content */
+                viewer.innerHTML = "";
+
+                if (isPDF(cert.file)) {
+                    /* PDF — use embedded iframe */
+                    const iframe = document.createElement("iframe");
+                    iframe.className = "cert-modal-pdf";
+                    iframe.src = cert.file;
+                    iframe.title = cert.title;
+                    iframe.setAttribute("frameborder", "0");
+                    iframe.setAttribute("allowfullscreen", "true");
+                    viewer.appendChild(iframe);
+                    modal.classList.add("active", "pdf-mode");
+                } else {
+                    /* Image */
+                    const img = document.createElement("img");
+                    img.className = "cert-modal-img";
+                    img.src = cert.file;
+                    img.alt = cert.title;
+                    viewer.appendChild(img);
+                    modal.classList.add("active");
+                    modal.classList.remove("pdf-mode");
+                }
+
+                document.body.style.overflow = "hidden";
+            }
+
+            function closeModal() {
+                modal.classList.remove("active", "pdf-mode");
+                document.body.style.overflow = "";
+                /* defer cleanup so the fade-out animation plays */
+                setTimeout(() => { viewer.innerHTML = ""; }, 350);
+            }
+
+            /* Open from image click */
+            grid.addEventListener("click", (e) => {
+                const wrap = e.target.closest(".cert-image-wrap");
+                if (wrap) { openModal(Number(wrap.dataset.index)); return; }
+
+                const btn = e.target.closest(".cert-btn");
+                if (btn) { openModal(Number(btn.dataset.index)); return; }
+            });
+
+            backdrop.addEventListener("click", closeModal);
+            closeBtn.addEventListener("click", closeModal);
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" && modal.classList.contains("active")) closeModal();
+            });
+
+            /* ---------- Scroll-reveal for cert cards ---------- */
+            const certObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add("cert-visible");
+                });
+            }, { threshold: 0.1, rootMargin: "0px 0px -40px 0px" });
+
+            grid.querySelectorAll(".cert-card").forEach(c => certObserver.observe(c));
         });
     </script>
 </body>
 
-</html>35335
+</html>
